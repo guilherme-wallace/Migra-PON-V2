@@ -1,3 +1,11 @@
 
 dadosConexaoOLTs.py
 /__pycache__
+lista_onus_hw.txt
+lista_onus_hw_srv.txt
+ONTdelete.txt
+src/currentONT.txt
+src/onu_huawei_desc.json
+src/onu_huawei_desc.txt
+src/service_port_lines.txt
+undo_service_ports.txt

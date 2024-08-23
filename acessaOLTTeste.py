@@ -16,21 +16,27 @@ olt_IPS = {
     "OLT-CCA01": ip_CCA01,
 }
 #------------------------------------------------------------------------------------------------------------
-# Seleciona a OLT a ser usada
-use_OLT = "OLT-SEA01"
+#OBS: 1º adicione as ONUS que serão autorizadas, pelo comando display ont autofind all 
+
+# Seleciona a OLT Antiga
+use_OLT_Antiga = "OLT-SEA01"
 pon_ANTIGA = "0/16/5"
 
+# Seleciona a OLT Nova
+use_OLT_Nova = "OLT-SEA03"
+
 # VLAN do serviço
-vlan_IN = 1904
+vlan_IN = 1501
 
 # VLAN de saída para ONU
-vlan_OUT = 1904
+vlan_OUT = 1501
 
 # Inicializa variáveis
-onu_ID = 50
-ont_SRV_PROF = 1904
-ont_LIN_PROF = 1904
+onu_ID = 0
+ont_SRV_PROF = 1501
+ont_LIN_PROF = 1501
 gem_PORT = 126
+
 #------------------------------------------------------------------------------------------------------------
 
 
@@ -43,7 +49,8 @@ onu_FILE_DESC = 'src/onu_huawei_desc.txt'
 lista_ONUS = 'lista_ONUS_hw.txt'
 lista_SRV = 'lista_ONUS_hw_srv.txt'
 
-hostname = olt_IPS.get(use_OLT)
+hostnameOLTAntiga = olt_IPS.get(use_OLT_Antiga)
+hostnameOLTNova = olt_IPS.get(use_OLT_Nova)
 
 # Dados de acesso SSH
 username = user
@@ -58,14 +65,14 @@ commandsSummary = [
     f"display ont info summary {pon_ANTIGA} | no-more"
 ]
 
-def ssh_connect_and_executeSummary(hostname, username, password, commandsSummary, delay=0.2, timeout=6, max_loops=10):
+def ssh_connect_and_executeSummary(hostnameOLTAntiga, username, password, commandsSummary, delay=0.2, timeout=6, max_loops=10):
     # Cria um cliente SSH
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
         # Conecta ao host via SSH com timeout
-        client.connect(hostname, username=username, password=password, timeout=timeout)
+        client.connect(hostnameOLTAntiga, username=username, password=password, timeout=timeout)
 
         # Cria um shell interativo
         ssh_shell = client.invoke_shell()
@@ -117,7 +124,7 @@ def ssh_connect_and_executeSummary(hostname, username, password, commandsSummary
         client.close()
 
 # Executa a função
-ssh_connect_and_executeSummary(hostname, username, password, commandsSummary, delay=0.2, timeout=6, max_loops=10)
+ssh_connect_and_executeSummary(hostnameOLTAntiga, username, password, commandsSummary, delay=0.2, timeout=6, max_loops=10)
 
 #FORMULA AS LISTA DE ONUS E SERVICE-PORT------------------------------------------------------------------------------------------------------------
 
@@ -198,16 +205,18 @@ with open(lista_SRV, 'r') as lista_SRV_file:
 
 #INICIO FUNÇÃO DELTA ONU------------------------------------------------------------------------------------------------------------
 
-def deleta_onu():    
+def main():    
     # Definindo o nome dos arquivos de entrada e saída
     onu_huawei_descJSON = 'src/onu_huawei_desc.json'
     ONTdeleteTXT = 'ontDelete.txt'
     seviceportdeleteTXT = 'undo_service_ports.txt'
+    ONTaddTXT = 'lista_ONUS_hw.txt'
+    serviceportAddTXT = 'lista_ONUS_hw_srv.txt'
     currentONT = 'src/currentONT.txt'
 
     # Definindo a interface GPON com base em pon_ANTIGA
-    interfaceGPON = "/".join(pon_ANTIGA.split("/")[0:2])
-    gPON = "/".join(pon_ANTIGA.split("/")[2:3])
+    interfaceGPON_Antiga = "/".join(pon_ANTIGA.split("/")[0:2])
+    gPON_Antiga = "/".join(pon_ANTIGA.split("/")[2:3])
 
     # Lista para armazenar os dados extraídos
     listaONU = []
@@ -240,7 +249,7 @@ def deleta_onu():
     # Cria o arquivo delete_commands.txt com os comandos "ont delete {ID}"
     with open(ONTdeleteTXT, 'w') as onusDeletadas:
         for onu in listaONU:
-            onusDeletadas.write(f'ont delete {gPON} {onu["ID"]}\n\n')
+            onusDeletadas.write(f'ont delete {gPON_Antiga} {onu["ID"]}\n\n')
 
     print(f'Comandos de exclusão salvos em {ONTdeleteTXT}')
 
@@ -264,14 +273,14 @@ def deleta_onu():
     ]
 
     # Função de conexão SSH e execução dos comandos
-    def ssh_connect_and_executeCurrentONU(hostname, username, password, commandsCurrentONT, commandcurrentONUs, delay=0.2, timeout=6):
+    def ssh_connect_and_executeCurrentONU(hostnameOLTAntiga, username, password, commandsCurrentONT, commandcurrentONUs, delay=0.2, timeout=6):
         # Cria um cliente SSH
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
             # Conecta ao host via SSH com timeout
-            client.connect(hostname, username=username, password=password, timeout=timeout)
+            client.connect(hostnameOLTAntiga, username=username, password=password, timeout=timeout)
 
             # Cria um shell interativo
             ssh_shell = client.invoke_shell()
@@ -349,35 +358,30 @@ def deleta_onu():
             client.close()
 
     # Executa a função
-    ssh_connect_and_executeCurrentONU(hostname, username, password, commandsCurrentONT, commandcurrentONUs, delay=0.2, timeout=6)
+    ssh_connect_and_executeCurrentONU(hostnameOLTAntiga, username, password, commandsCurrentONT, commandcurrentONUs, delay=0.2, timeout=6)
 
+
+#FUNÇÃO DELETA SERVICE-PORT------------------------------------------------------------------------------------------------------------
     
     # Lê os comandos do arquivo delete_commands.txt para uma lista
     with open(seviceportdeleteTXT, 'r') as serviceportDeletadas:
         deletaServiceportCommands = serviceportDeletadas.readlines()
 
-
-    # Lê os comandos do arquivo delete_commands.txt para uma lista
-    with open(ONTdeleteTXT, 'r') as onusDeletadas:
-        deletaONUCommands = onusDeletadas.readlines()
-
-#FUNÇÃO DELETA SERVICE-PORT------------------------------------------------------------------------------------------------------------
-
-    # Comandos para deltar service_port
+    # Comandos para deletar service_port
     commandsDeletaServiceport = [
         "enable",
         "config",
     ]
 
     # Função de conexão SSH e execução dos comandos
-    def ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaServiceport, deletaServiceportCommands, delay=0.1, timeout=2):
+    def ssh_connect_and_executeDeleteServiceport(hostnameOLTAntiga, username, password, commandsDeletaServiceport, deletaServiceportCommands, delay=0.1, timeout=2):
         # Cria um cliente SSH
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
             # Conecta ao host via SSH com timeout
-            client.connect(hostname, username=username, password=password, timeout=timeout)
+            client.connect(hostnameOLTAntiga, username=username, password=password, timeout=timeout)
 
             # Cria um shell interativo
             ssh_shell = client.invoke_shell()
@@ -416,26 +420,31 @@ def deleta_onu():
             client.close()
 
     # Executa a função
-    ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaServiceport, deletaServiceportCommands, delay=0.1, timeout=2)
+    ssh_connect_and_executeDeleteServiceport(hostnameOLTAntiga, username, password, commandsDeletaServiceport, deletaServiceportCommands, delay=0.1, timeout=2)
 
 #FUNÇÃO DELETA ONU------------------------------------------------------------------------------------------------------------
+    
+    # Lê os comandos do arquivo delete_commands.txt para uma lista
+    with open(ONTdeleteTXT, 'r') as onusDeletadas:
+        deletaONUCommands = onusDeletadas.readlines()
 
-    # Comandos para deltar ONU
+    # Comandos para deletar ONU
     commandsDeletaONU = [
         "enable",
         "config",
-        f"interface gpon {interfaceGPON}",
+        f"interface gpon {interfaceGPON_Antiga}",
     ]
 
     # Função de conexão SSH e execução dos comandos
-    def ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaONU, deletaONUCommands, delay=0.1, timeout=2):
+    def ssh_connect_and_executeDeleteONU(hostnameOLTAntiga, username, password, commandsDeletaONU, deletaONUCommands, delay=0.1, timeout=2):
+        
         # Cria um cliente SSH
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
             # Conecta ao host via SSH com timeout
-            client.connect(hostname, username=username, password=password, timeout=timeout)
+            client.connect(hostnameOLTAntiga, username=username, password=password, timeout=timeout)
 
             # Cria um shell interativo
             ssh_shell = client.invoke_shell()
@@ -474,15 +483,141 @@ def deleta_onu():
             client.close()
     
     # Executa a função
-    ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaONU, deletaONUCommands, delay=0.1, timeout=2)
+    ssh_connect_and_executeDeleteONU(hostnameOLTAntiga, username, password, commandsDeletaONU, deletaONUCommands, delay=0.1, timeout=2)
 
+
+#FUNÇÃO ADICIONA ONU NA NOVA OLT/PON------------------------------------------------------------------------------------------------------------
+    
+    interfaceGPON_Nova = "/".join(porta_pon.split("/")[0:2])
+    gPON_Nova = "/".join(porta_pon.split("/")[2:3])
+    
+
+    # Lê os comandos do arquivo delete_commands.txt para uma lista
+    with open(ONTaddTXT, 'r') as onusAdicionada:
+        addONUCommands = onusAdicionada.readlines()
+    # Comandos para adicionar ONU
+    commandsONTadd = [
+        "enable",
+        "config",
+        f"interface gpon {interfaceGPON_Nova}",
+    ]
+
+    # Função de conexão SSH e execução dos comandos
+    def ssh_connect_and_executeAddONU(hostnameOLTNova, username, password, commandsONTadd, addONUCommands, delay=0.1, timeout=2):
+        # Cria um cliente SSH
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            # Conecta ao host via SSH com timeout
+            client.connect(hostnameOLTNova, username=username, password=password, timeout=timeout)
+
+            # Cria um shell interativo
+            ssh_shell = client.invoke_shell()
+
+            # Executa os comandos iniciais no shell
+            for command in commandsONTadd:
+                ssh_shell.send(command + '\n')
+                time.sleep(delay)  # Aguarda um tempo para o comando ser processado
+
+            # Executa os comandos de exclusão
+            for command in addONUCommands:
+                ssh_shell.send(command + '\n')
+                time.sleep(delay)  # Aguarda um tempo para o comando ser processado
+
+                # Aguarda até que o comando seja processado
+                output = ""
+                end_time = time.time() + timeout
+                while time.time() < end_time:
+                    if ssh_shell.recv_ready():
+                        output += ssh_shell.recv(4096).decode('utf-8')
+                        
+                        # Verifica se a resposta contém a solicitação de Enter
+                        if "{ <cr>||<K> }" in output:
+                            ssh_shell.send('\n')  # Envia Enter para continuar
+                            time.sleep(delay)  # Aguarda após o Enter
+                    else:
+                        time.sleep(0.5)  # Aguarda um pouco antes de verificar novamente
+
+                #print(output)
+            
+            print(f"As ONUs foram Adicionada na nova PON {interfaceGPON_Nova}/{gPON_Nova}")
+        except Exception as e:
+            print(f"Erro ao conectar ou executar comandos: {e}")
+        finally:
+            # Fecha a conexão SSH
+            client.close()
+    
+    # Executa a função
+    ssh_connect_and_executeAddONU(hostnameOLTNova, username, password, commandsONTadd, addONUCommands, delay=0.1, timeout=2)
+
+#FUNÇÃO ADICIONA SERVICE-PORT------------------------------------------------------------------------------------------------------------
+    
+    # Lê os comandos do arquivo delete_commands.txt para uma lista
+    with open(serviceportAddTXT, 'r') as serviceportAdicionadas:
+        adicionaServiceportCommands = serviceportAdicionadas.readlines()
+
+    # Comandos para adiciona service_port
+    commandsAdcionaServiceport = [
+        "enable",
+        "config",
+    ]
+
+    # Função de conexão SSH e execução dos comandos
+    def ssh_connect_and_executeAdicionaServiceport(hostnameOLTNova, username, password, commandsAdcionaServiceport, adicionaServiceportCommands, delay=0.1, timeout=2):
+        # Cria um cliente SSH
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            # Conecta ao host via SSH com timeout
+            client.connect(hostnameOLTNova, username=username, password=password, timeout=timeout)
+
+            # Cria um shell interativo
+            ssh_shell = client.invoke_shell()
+
+            # Executa os comandos iniciais no shell
+            for command in commandsAdcionaServiceport:
+                ssh_shell.send(command + '\n')
+                time.sleep(delay)  # Aguarda um tempo para o comando ser processado
+
+            # Executa os comandos de exclusão
+            for command in adicionaServiceportCommands:
+                ssh_shell.send(command + '\n')
+                time.sleep(delay)  # Aguarda um tempo para o comando ser processado
+
+                # Aguarda até que o comando seja processado
+                output = ""
+                end_time = time.time() + timeout
+                while time.time() < end_time:
+                    if ssh_shell.recv_ready():
+                        output += ssh_shell.recv(4096).decode('utf-8')
+                        
+                        # Verifica se a resposta contém a solicitação de Enter
+                        if "{ <cr>||<K> }" in output:
+                            ssh_shell.send('\n')  # Envia Enter para continuar
+                            time.sleep(delay)  # Aguarda após o Enter
+                    else:
+                        time.sleep(0.5)  # Aguarda um pouco antes de verificar novamente
+
+                #print(output)
+            
+            print("Os service-port foram adicionados")
+        except Exception as e:
+            print(f"Erro ao conectar ou executar comandos: {e}")
+        finally:
+            # Fecha a conexão SSH
+            client.close()
+
+    # Executa a função
+    ssh_connect_and_executeAdicionaServiceport(hostnameOLTNova, username, password, commandsAdcionaServiceport, adicionaServiceportCommands, delay=0.1, timeout=2)
 
 while True:
      continuar = input('Deseja continuar? Digite "s" para Sim ou "n" para Não: ').lower()
      if continuar not in ['s', 'n']:
         print('Por favor, responda "s" ou "n".')
      elif continuar == 's':
-         deleta_onu()
+         main()
          print("Fim do Script\nAdeus!")
          break
      else:

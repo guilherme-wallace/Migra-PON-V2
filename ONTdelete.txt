@@ -1,6 +1,0 @@
-ont delete 5 0
-
-ont delete 5 1
-
-ont delete 5 2
-

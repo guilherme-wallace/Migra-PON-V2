@@ -1,3 +1,0 @@
- service-port 35759 vlan 1904 gpon 0/16/5 ont 0 gemport 126 multi-service 
- service-port 35760 vlan 1904 gpon 0/16/5 ont 1 gemport 126 multi-service 
- service-port 35761 vlan 1904 gpon 0/16/5 ont 2 gemport 126 multi-service 
