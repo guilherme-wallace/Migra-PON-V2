@@ -1,14 +1,6 @@
-ont delete 0 0
-ont delete 0 2
-ont delete 0 3
-ont delete 0 4
-ont delete 0 5
-ont delete 0 7
-ont delete 0 8
-ont delete 0 9
-ont delete 0 10
-ont delete 0 12
-ont delete 0 13
-ont delete 0 14
-ont delete 0 26
-ont delete 0 32
+ont delete 5 0
+
+ont delete 5 1
+
+ont delete 5 2
+

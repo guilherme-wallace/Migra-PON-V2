@@ -1,0 +1,3 @@
+display current-configuration ont 0/16/5 0
+display current-configuration ont 0/16/5 1
+display current-configuration ont 0/16/5 2

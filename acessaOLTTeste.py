@@ -3,10 +3,10 @@ import time
 import re
 import os
 import json
-from dadosConexaoOLTs import *
+from public.dadosConexaoOLTs import *
 
 # Mapeamento das OLTs e seus IPs
-OLT_IPS = {
+olt_IPS = {
     "OLT-SEA01": ip_SEA01,
     "OLT-SEA03": ip_SEA03,
     "OLT-VTA01": ip_VTA01,
@@ -17,45 +17,45 @@ OLT_IPS = {
 }
 #------------------------------------------------------------------------------------------------------------
 # Seleciona a OLT a ser usada
-USE_OLT = "OLT-SEA01"  # Certifique-se de que o IP e as credenciais estão corretos
-PON_ANTIGA = "0/1/0"
-#PON_NOVA = "0/1/0"
+use_OLT = "OLT-SEA01"
+pon_ANTIGA = "0/16/5"
 
 # VLAN do serviço
-VLAN_IN = 1904
+vlan_IN = 1904
 
 # VLAN de saída para ONU
-VLAN_OUT = 1904
+vlan_OUT = 1904
 
 # Inicializa variáveis
-PON_ZERA = "0"
-ONU_ID = 0
-ONT_SRV_PROF = 1904
-ONT_LIN_PROF = 1904
-GEM_PORT = 126
+onu_ID = 50
+ont_SRV_PROF = 1904
+ont_LIN_PROF = 1904
+gem_PORT = 126
 #------------------------------------------------------------------------------------------------------------
 
 
 # Arquivo contendo a lista de ONUs
-ONU_FILE = 'onu_huawei.txt'
+onu_FILE = 'auto_find_onu_huawei.txt'
 
 # Arquivo contendo as descrições das ONUs
-ONU_FILE_DESC = 'onu_huawei_desc.txt'
+onu_FILE_DESC = 'src/onu_huawei_desc.txt'
 
-LISTA_ONUS = 'lista_onus_hw.txt'
-LISTA_SRV = 'lista_onus_hw_srv.txt'
+lista_ONUS = 'lista_ONUS_hw.txt'
+lista_SRV = 'lista_ONUS_hw_srv.txt'
 
-hostname = OLT_IPS.get(USE_OLT)
+hostname = olt_IPS.get(use_OLT)
 
 # Dados de acesso SSH
 username = user
 password = user_password
 
+#PEGA O SUMMARY------------------------------------------------------------------------------------------------------------
+
 # Comandos para a OLT
 commandsSummary = [
     "enable",
     "config",
-    f"display ont info summary {PON_ANTIGA} | no-more"
+    f"display ont info summary {pon_ANTIGA} | no-more"
 ]
 
 def ssh_connect_and_executeSummary(hostname, username, password, commandsSummary, delay=0.2, timeout=6, max_loops=10):
@@ -105,10 +105,10 @@ def ssh_connect_and_executeSummary(hostname, username, password, commandsSummary
         onu_huawei_desc = re.findall(r'^\s*\d+\s+[A-F0-9]+\s+\S+\s+.*$', full_output, re.MULTILINE)
 
         # Salva as linhas filtradas em um arquivo
-        with open('onu_huawei_desc.txt', 'w') as file:
+        with open('src/onu_huawei_desc.txt', 'w') as file:
             file.write('\n'.join(onu_huawei_desc))
 
-        print("As linhas filtradas foram salvas em 'onu_huawei_desc.txt'.")
+        print("As linhas filtradas foram salvas em 'src/onu_huawei_desc.txt'.")
 
     except Exception as e:
         print(f"Erro ao conectar ou executar comandos: {e}")
@@ -119,12 +119,14 @@ def ssh_connect_and_executeSummary(hostname, username, password, commandsSummary
 # Executa a função
 ssh_connect_and_executeSummary(hostname, username, password, commandsSummary, delay=0.2, timeout=6, max_loops=10)
 
+#FORMULA AS LISTA DE ONUS E SERVICE-PORT------------------------------------------------------------------------------------------------------------
+
 # Limpa os arquivos de saída
-open(LISTA_ONUS, 'w').close()
-open(LISTA_SRV, 'w').close()
+open(lista_ONUS, 'w').close()
+open(lista_SRV, 'w').close()
 
 # Lê o arquivo de ONUs e armazena o número total de ONUs
-with open(ONU_FILE, 'r') as f:
+with open(onu_FILE, 'r') as f:
     onu_lines = f.readlines()
 
 total_onus = [line.split()[3] for line in onu_lines if "Ont SN" in line]
@@ -162,47 +164,50 @@ for ONU_SN in total_onus:
     else:
         onu_oper = "BRIDGE"
 
-    with open(ONU_FILE_DESC, 'r') as f:
+    with open(onu_FILE_DESC, 'r') as f:
         onu_desc_lines = f.readlines()
     
     onu_desc = next((line.split()[5] for line in onu_desc_lines if ONU_SN[8:16] in line), ONU_SN)
 
-    with open(LISTA_ONUS, 'a') as lista_onus_file:
-        lista_onus_file.write(f'ont add {pon_id} {ONU_ID} sn-auth {ONU_SN} omci ont-lineprofile-id {ONT_LIN_PROF} ont-srvprofile-id {ONT_SRV_PROF} desc "{onu_desc}"\n\n')
+    with open(lista_ONUS, 'a') as lista_ONUS_file:
+        lista_ONUS_file.write(f'ont add {pon_id} {onu_ID} sn-auth {ONU_SN} omci ont-lineprofile-id {ont_LIN_PROF} ont-srvprofile-id {ont_SRV_PROF} desc "{onu_desc}"\n\n')
         
         if onu_oper == "ROUTER":
             for i in range(1, 5):
-                lista_onus_file.write(f'ont port route {pon_id} {ONU_ID} eth {i} enable\n\n')
+                lista_ONUS_file.write(f'ont port route {pon_id} {onu_ID} eth {i} enable\n\n')
         else:
-            lista_onus_file.write(f'ont port native-vlan {pon_id} {ONU_ID} eth 1 vlan {VLAN_OUT} priority 0\n\n')
+            lista_ONUS_file.write(f'ont port native-vlan {pon_id} {onu_ID} eth 1 vlan {vlan_OUT} priority 0\n\n')
 
-    with open(LISTA_SRV, 'a') as lista_srv_file:
+    with open(lista_SRV, 'a') as lista_SRV_file:
         contServiceport = contServiceport + 1
         if onu_oper == "ROUTER":
-            lista_srv_file.write(f'service-port vlan {VLAN_OUT} gpon {porta_pon} ont {ONU_ID} gemport {GEM_PORT} multi-service user-vlan untagged tag-transform default\n\n')
+            lista_SRV_file.write(f'service-port vlan {vlan_OUT} gpon {porta_pon} ont {onu_ID} gemport {gem_PORT} multi-service user-vlan untagged tag-transform default\n\n')
         else:
-            lista_srv_file.write(f'service-port vlan {VLAN_IN} gpon {porta_pon} ont {ONU_ID} gemport {GEM_PORT} multi-service user-vlan {VLAN_OUT} tag-transform translate\n\n')
+            lista_SRV_file.write(f'service-port vlan {vlan_IN} gpon {porta_pon} ont {onu_ID} gemport {gem_PORT} multi-service user-vlan {vlan_OUT} tag-transform translate\n\n')
 
-    ONU_ID += 1
+    onu_ID += 1
 
 # Exibe o conteúdo dos arquivos gerados
-with open(LISTA_ONUS, 'r') as lista_onus_file:
-    print(lista_onus_file.read())
+with open(lista_ONUS, 'r') as lista_ONUS_file:
+    #print(lista_ONUS_file.read())
+    print("A lista de ONUs foi gerada!")
 
-print()
+with open(lista_SRV, 'r') as lista_SRV_file:
+    #print(lista_SRV_file.read())
+    print("A lista de service-port foi gerada!")
 
-with open(LISTA_SRV, 'r') as lista_srv_file:
-    print(lista_srv_file.read())
+#INICIO FUNÇÃO DELTA ONU------------------------------------------------------------------------------------------------------------
 
 def deleta_onu():    
     # Definindo o nome dos arquivos de entrada e saída
-    onu_huawei_descJSON = 'onu_huawei_desc.json'
-    ONTdeleteTXT = 'ONTdelete.txt'
-    currentONT = 'currentONT.txt'
+    onu_huawei_descJSON = 'src/onu_huawei_desc.json'
+    ONTdeleteTXT = 'ontDelete.txt'
+    seviceportdeleteTXT = 'undo_service_ports.txt'
+    currentONT = 'src/currentONT.txt'
 
-    # Definindo a interface GPON com base em PON_ANTIGA
-    interfaceGPON = "/".join(PON_ANTIGA.split("/")[0:2])
-    gPON = "/".join(PON_ANTIGA.split("/")[2:3])
+    # Definindo a interface GPON com base em pon_ANTIGA
+    interfaceGPON = "/".join(pon_ANTIGA.split("/")[0:2])
+    gPON = "/".join(pon_ANTIGA.split("/")[2:3])
 
     # Lista para armazenar os dados extraídos
     listaONU = []
@@ -221,7 +226,7 @@ def deleta_onu():
             listaONU.append(onu_entry)
 
     # Lê o arquivo linha por linha e processa cada uma
-    with open(ONU_FILE_DESC, 'r') as file:
+    with open(onu_FILE_DESC, 'r') as file:
         for line in file:
             if line.strip():  # Ignora linhas em branco
                 process_lineONUsJSON(line)
@@ -235,25 +240,22 @@ def deleta_onu():
     # Cria o arquivo delete_commands.txt com os comandos "ont delete {ID}"
     with open(ONTdeleteTXT, 'w') as onusDeletadas:
         for onu in listaONU:
-            onusDeletadas.write(f'ont delete {gPON} {onu["ID"]}\n')
+            onusDeletadas.write(f'ont delete {gPON} {onu["ID"]}\n\n')
 
     print(f'Comandos de exclusão salvos em {ONTdeleteTXT}')
 
     # Cria o arquivo currentONTcommand.txt com os comandos "ont delete {ID}"
     with open(currentONT, 'w') as currentONUs:
         for onu in listaONU:
-            currentONUs.write(f'display current-configuration ont {PON_ANTIGA} {onu["ID"]}\n')
+            currentONUs.write(f'display current-configuration ont {pon_ANTIGA} {onu["ID"]}\n')
 
     print(f'Comandos de exclusão salvos em {currentONT}')
-
-
-    # Lê os comandos do arquivo delete_commands.txt para uma lista
-    with open(ONTdeleteTXT, 'r') as onusDeletadas:
-        deletaCommands = onusDeletadas.readlines()
 
     # Lê os comandos do arquivo currentONTcommand.txt para uma lista
     with open(currentONT, 'r') as currentONUs:
         commandcurrentONUs = currentONUs.readlines()
+
+#FUNÇÃO PEGA CURRENT CONFIGURATION------------------------------------------------------------------------------------------------------------
 
     # Comandos para pegar service port
     commandsCurrentONT = [
@@ -262,7 +264,7 @@ def deleta_onu():
     ]
 
     # Função de conexão SSH e execução dos comandos
-    def ssh_connect_and_executeCurrentONU(hostname, username, password, commandsCurrentONT, commandcurrentONUs, delay=0, timeout=1):
+    def ssh_connect_and_executeCurrentONU(hostname, username, password, commandsCurrentONT, commandcurrentONUs, delay=0.2, timeout=6):
         # Cria um cliente SSH
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -273,6 +275,9 @@ def deleta_onu():
 
             # Cria um shell interativo
             ssh_shell = client.invoke_shell()
+
+            # Executando os comandos e filtrando a saída
+            service_port_lines = []
 
             # Executa os comandos iniciais no shell
             for command in commandsCurrentONT:
@@ -298,7 +303,44 @@ def deleta_onu():
                     else:
                         time.sleep(0.5)  # Aguarda um pouco antes de verificar novamente
 
-                print(output)
+                #print(output)
+
+                # Filtrando apenas as linhas que contêm 'service-port'
+                lines = output.splitlines()
+                for line in lines:
+                    if 'service-port' in line:
+                        service_port_lines.append(line)
+
+            # Salvando as linhas filtradas em um arquivo
+            with open('src/service_port_lines.txt', 'w') as file:
+                for line in service_port_lines:
+                    file.write(line + '\n')
+
+            print("As linhas 'service-port' foram salvas em 'src/service_port_lines.txt'.")
+
+            # Nome do arquivo de entrada e saída
+            file_service_port_lines = 'src/service_port_lines.txt'
+            file_undo_service_ports = 'undo_service_ports.txt'
+
+            # Leitura do arquivo de entrada
+            with open(file_service_port_lines, 'r') as file:
+                lines = file.readlines()
+
+            # Processamento das linhas para criar os comandos "undo service-port ID"
+            undo_lines = []
+            for line in lines:
+                if 'service-port' in line:
+                    # Extraindo o ID do service-port (a segunda palavra na linha)
+                    service_port_id = line.split()[1]
+                    undo_line = f"undo service-port {service_port_id}\n\n"
+                    undo_lines.append(undo_line)
+
+            # Salvando os comandos "undo" no arquivo de saída
+            with open(file_undo_service_ports, 'w') as file:
+                file.writelines(undo_lines)
+
+            print(f"Comandos 'undo' gerados e salvos em '{file_undo_service_ports}'.")
+
 
         except Exception as e:
             print(f"Erro ao conectar ou executar comandos: {e}")
@@ -307,18 +349,28 @@ def deleta_onu():
             client.close()
 
     # Executa a função
-    ssh_connect_and_executeCurrentONU(hostname, username, password, commandsCurrentONT, commandcurrentONUs, delay=0, timeout=1)
+    ssh_connect_and_executeCurrentONU(hostname, username, password, commandsCurrentONT, commandcurrentONUs, delay=0.2, timeout=6)
 
-"""
-    # Comandos para deltar ONU
-    commandsDeletaONU = [
+    
+    # Lê os comandos do arquivo delete_commands.txt para uma lista
+    with open(seviceportdeleteTXT, 'r') as serviceportDeletadas:
+        deletaServiceportCommands = serviceportDeletadas.readlines()
+
+
+    # Lê os comandos do arquivo delete_commands.txt para uma lista
+    with open(ONTdeleteTXT, 'r') as onusDeletadas:
+        deletaONUCommands = onusDeletadas.readlines()
+
+#FUNÇÃO DELETA SERVICE-PORT------------------------------------------------------------------------------------------------------------
+
+    # Comandos para deltar service_port
+    commandsDeletaServiceport = [
         "enable",
         "config",
-        f"interface gpon {interfaceGPON}",
     ]
 
     # Função de conexão SSH e execução dos comandos
-    def ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaONU, deletaCommands, delay=0.1, timeout=2):
+    def ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaServiceport, deletaServiceportCommands, delay=0.1, timeout=2):
         # Cria um cliente SSH
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -331,12 +383,12 @@ def deleta_onu():
             ssh_shell = client.invoke_shell()
 
             # Executa os comandos iniciais no shell
-            for command in commandsDeletaONU:
+            for command in commandsDeletaServiceport:
                 ssh_shell.send(command + '\n')
                 time.sleep(delay)  # Aguarda um tempo para o comando ser processado
 
             # Executa os comandos de exclusão
-            for command in deletaCommands:
+            for command in deletaServiceportCommands:
                 ssh_shell.send(command + '\n')
                 time.sleep(delay)  # Aguarda um tempo para o comando ser processado
 
@@ -354,8 +406,9 @@ def deleta_onu():
                     else:
                         time.sleep(0.5)  # Aguarda um pouco antes de verificar novamente
 
-                print(output)
-
+                #print(output)
+            
+            print("Os service-port foram deletados")
         except Exception as e:
             print(f"Erro ao conectar ou executar comandos: {e}")
         finally:
@@ -363,17 +416,76 @@ def deleta_onu():
             client.close()
 
     # Executa a função
-    ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaONU, deletaCommands, delay=0.1, timeout=2)
-"""
+    ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaServiceport, deletaServiceportCommands, delay=0.1, timeout=2)
+
+#FUNÇÃO DELETA ONU------------------------------------------------------------------------------------------------------------
+
+    # Comandos para deltar ONU
+    commandsDeletaONU = [
+        "enable",
+        "config",
+        f"interface gpon {interfaceGPON}",
+    ]
+
+    # Função de conexão SSH e execução dos comandos
+    def ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaONU, deletaONUCommands, delay=0.1, timeout=2):
+        # Cria um cliente SSH
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            # Conecta ao host via SSH com timeout
+            client.connect(hostname, username=username, password=password, timeout=timeout)
+
+            # Cria um shell interativo
+            ssh_shell = client.invoke_shell()
+
+            # Executa os comandos iniciais no shell
+            for command in commandsDeletaONU:
+                ssh_shell.send(command + '\n')
+                time.sleep(delay)  # Aguarda um tempo para o comando ser processado
+
+            # Executa os comandos de exclusão
+            for command in deletaONUCommands:
+                ssh_shell.send(command + '\n')
+                time.sleep(delay)  # Aguarda um tempo para o comando ser processado
+
+                # Aguarda até que o comando seja processado
+                output = ""
+                end_time = time.time() + timeout
+                while time.time() < end_time:
+                    if ssh_shell.recv_ready():
+                        output += ssh_shell.recv(4096).decode('utf-8')
+                        
+                        # Verifica se a resposta contém a solicitação de Enter
+                        if "{ <cr>||<K> }" in output:
+                            ssh_shell.send('\n')  # Envia Enter para continuar
+                            time.sleep(delay)  # Aguarda após o Enter
+                    else:
+                        time.sleep(0.5)  # Aguarda um pouco antes de verificar novamente
+
+                #print(output)
+            
+            print("As ONUs foram deletadas")
+        except Exception as e:
+            print(f"Erro ao conectar ou executar comandos: {e}")
+        finally:
+            # Fecha a conexão SSH
+            client.close()
+    
+    # Executa a função
+    ssh_connect_and_executeDeleteONU(hostname, username, password, commandsDeletaONU, deletaONUCommands, delay=0.1, timeout=2)
+
+
 while True:
      continuar = input('Deseja continuar? Digite "s" para Sim ou "n" para Não: ').lower()
      if continuar not in ['s', 'n']:
         print('Por favor, responda "s" ou "n".')
      elif continuar == 's':
          deleta_onu()
-         #print("Fim do Script\nAdeus!")
+         print("Fim do Script\nAdeus!")
          break
      else:
-         #print("Fim do Programa\nAdeus!")
+         print("Fim do Programa\nAdeus!")
          break
 

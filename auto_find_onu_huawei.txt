@@ -1,0 +1,46 @@
+   ----------------------------------------------------------------------------
+   Number              : 1
+   F/S/P               : 0/1/0
+   Ont SN              : 48575443897A0000 (HWTC-897A8C5F)
+   Password            : 0x00000000000000000000
+   Loid                : 
+   Checkcode           : 
+   VendorID            : HWTC
+   Ont Version         : ED5.A
+   Ont SoftwareVersion : V3R017C00S100
+   Ont EquipmentID     : EG8010H
+   Ont Customized Info : COMMON
+   Ont MAC             : -
+   Ont Equipment SN    : -
+   Ont autofind time   : 2024-08-22 18:42:54-03:00
+   ----------------------------------------------------------------------------
+   Number              : 2
+   F/S/P               : 0/1/0
+   Ont SN              : 48575443897A1111 (HWTC-E1A4E5B2)
+   Password            : 0x00000000000000000000
+   Loid                : 
+   Checkcode           : 
+   VendorID            : HWTC
+   Ont Version         : 2B5.A       
+   Ont SoftwareVersion : V3R017C00S100
+   Ont EquipmentID     : EG8010H
+   Ont Customized Info : COMMON
+   Ont MAC             : -
+   Ont Equipment SN    : -
+   Ont autofind time   : 2024-05-25 08:15:32-03:00
+   ----------------------------------------------------------------------------
+   Number              : 3
+   F/S/P               : 0/1/0
+   Ont SN              : 48575443897A2222 (INVP-10326592)
+   Password            : 0x39393939393939393939(9999999999)
+   Loid                : 9999999999
+   Checkcode           : 
+   VendorID            : INVP
+   Ont Version         : RTF8115VW
+   Ont SoftwareVersion : R8115VWTEF001
+   Ont EquipmentID     : RTF8115VW
+   Ont Customized Info : -
+   Ont MAC             : -
+   Ont Equipment SN    : -
+   Ont autofind time   : 2024-08-23 12:12:36-03:00
+   ----------------------------------------------------------------------------
