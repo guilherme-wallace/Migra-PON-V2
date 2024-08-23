@@ -1,6 +1,8 @@
 
 dadosConexaoOLTs.py
 /__pycache__
+/public
+/src
 lista_onus_hw.txt
 lista_onus_hw_srv.txt
 ONTdelete.txt
