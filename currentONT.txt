@@ -1,0 +1,14 @@
+display current-configuration ont 0/1/0 0
+display current-configuration ont 0/1/0 2
+display current-configuration ont 0/1/0 3
+display current-configuration ont 0/1/0 4
+display current-configuration ont 0/1/0 5
+display current-configuration ont 0/1/0 7
+display current-configuration ont 0/1/0 8
+display current-configuration ont 0/1/0 9
+display current-configuration ont 0/1/0 10
+display current-configuration ont 0/1/0 12
+display current-configuration ont 0/1/0 13
+display current-configuration ont 0/1/0 14
+display current-configuration ont 0/1/0 26
+display current-configuration ont 0/1/0 32

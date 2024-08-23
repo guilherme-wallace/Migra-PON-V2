@@ -1,0 +1,2 @@
+service-port vlan 1904 gpon 0/1/0 ont 0 gemport 126 multi-service user-vlan 1904 tag-transform translate
+

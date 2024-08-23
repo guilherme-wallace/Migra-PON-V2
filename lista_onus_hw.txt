@@ -1,0 +1,4 @@
+ont add 0 0 sn-auth 48575443897A8C5F omci ont-lineprofile-id 1904 ont-srvprofile-id 1904 desc "48575443897A8C5F"
+
+ont port native-vlan 0 0 eth 1 vlan 1904 priority 0
+
