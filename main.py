@@ -20,21 +20,21 @@ olt_IPS = {
 
 # Seleciona a OLT Antiga
 use_OLT_Antiga = "OLT-SEA01"
-pon_ANTIGA = "0/16/5"
+pon_ANTIGA = "0/5/5"
 
 # Seleciona a OLT Nova
 use_OLT_Nova = "OLT-SEA03"
 
 # VLAN do serviço
-vlan_IN = 1501
+vlan_IN = 1502
 
 # VLAN de saída para ONU
-vlan_OUT = 1501
+vlan_OUT = 1921
 
 # Inicializa variáveis
 onu_ID = 0
-ont_SRV_PROF = 1501
-ont_LIN_PROF = 1501
+ont_SRV_PROF = 1921
+ont_LIN_PROF = 1921
 gem_PORT = 126
 
 #------------------------------------------------------------------------------------------------------------
